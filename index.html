@@ -7,45 +7,42 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:1.5rem}
-h1{font-size:20px;font-weight:500;margin-bottom:1.5rem;display:flex;align-items:center;gap:8px}
+h1{font-size:20px;font-weight:500;margin-bottom:1.5rem}
 .topbar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
-input[type=text],select{font-size:13px;padding:0 10px;height:34px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#1a1a1a;outline:none}
-input[type=text]:focus,select:focus{border-color:#185FA5}
+input[type=text],input[type=date],select{font-size:13px;padding:0 10px;height:34px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#1a1a1a;outline:none}
+input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#185FA5}
 button{font-size:13px;padding:0 14px;height:34px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#1a1a1a;cursor:pointer}
 button:hover{background:#f0f0f0}
 button:disabled{opacity:0.5;cursor:not-allowed}
 button.primary{background:#185FA5;color:#fff;border-color:#185FA5}
 button.primary:hover{background:#0C447C}
+button.danger{background:#fff;color:#A32D2D;border-color:#A32D2D}
+button.danger:hover{background:#FCEBEB}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:1.5rem}
 .stat{background:#fff;border-radius:8px;padding:12px 14px;border:1px solid #eee}
 .stat .label{font-size:12px;color:#666;margin-bottom:4px}
 .stat .value{font-size:22px;font-weight:500}
-.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start}
+.kanban{display:grid;gap:10px;align-items:start}
 .col{background:#ebebeb;border-radius:12px;padding:10px}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.col-title{font-size:13px;font-weight:500}
+.col-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.col-strip{width:3px;height:14px;border-radius:2px;display:inline-block}
 .col-count{font-size:12px;color:#666;background:#fff;border:1px solid #ddd;border-radius:20px;padding:1px 8px}
 .card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
 .card:hover{border-color:#aaa}
 .card-name{font-size:13px;font-weight:500;margin-bottom:4px}
 .card-info{font-size:12px;color:#666;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-footer{display:flex;align-items:center;justify-content:space-between}
-.badge{font-size:11px;padding:2px 8px;border-radius:20px}
-.badge-novo{background:#E6F1FB;color:#0C447C}
-.badge-contato{background:#FAEEDA;color:#633806}
-.badge-proposta{background:#EEEDFE;color:#3C3489}
-.badge-fechado{background:#EAF3DE;color:#27500A}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;background:#eee;color:#333}
 .badge-meta{background:#E6F1FB;color:#0C447C;font-size:10px;padding:1px 6px;border-radius:20px;margin-left:4px}
 .card-date{font-size:11px;color:#999}
 .empty{text-align:center;padding:20px 10px;color:#aaa;font-size:13px}
-.strip{width:3px;height:14px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-2px}
-.strip-novo{background:#378ADD}.strip-contato{background:#EF9F27}.strip-proposta{background:#7F77DD}.strip-fechado{background:#639922}
 .sync-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-radius:8px;margin-bottom:1rem;font-size:13px;color:#666;border:1px solid #eee}
 .dot{width:8px;height:8px;border-radius:50%;background:#639922;flex-shrink:0}
 .dot.off{background:#E24B4A}.dot.warn{background:#EF9F27}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:#fff;border-radius:12px;border:1px solid #ddd;padding:1.5rem;width:100%;max-width:420px;margin:1rem}
+.modal{background:#fff;border-radius:12px;border:1px solid #ddd;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto}
 .modal h2{font-size:16px;font-weight:500;margin-bottom:1rem}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:12px;color:#666;margin-bottom:4px}
@@ -58,8 +55,14 @@ button.primary:hover{background:#0C447C}
 .alert-warn{background:#FAEEDA;color:#633806}
 .alert-err{background:#FCEBEB;color:#791F1F}
 .alert-ok{background:#EAF3DE;color:#27500A}
-@media(max-width:700px){.kanban{grid-template-columns:1fr 1fr}}
-@media(max-width:450px){.kanban{grid-template-columns:1fr}}
+.stage-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.stage-row input[type=text]{flex:1;height:32px}
+.stage-row input[type=color]{width:36px;height:32px;padding:2px;border-radius:6px;border:1px solid #ddd;cursor:pointer}
+.stage-row button{padding:0 10px;height:32px;font-size:12px}
+.add-stage-btn{font-size:12px;padding:0 12px;height:30px;margin-top:4px}
+.date-clear{font-size:12px;color:#185FA5;cursor:pointer;text-decoration:underline;margin-left:8px}
+@media(max-width:700px){.kanban{grid-template-columns:1fr 1fr!important}}
+@media(max-width:450px){.kanban{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -67,17 +70,16 @@ button.primary:hover{background:#0C447C}
 <h1>Meta Leads CRM</h1>
 
 <div class="topbar">
-  <input type="text" id="search" placeholder="Buscar lead..." oninput="render()" style="width:200px">
+  <input type="text" id="search" placeholder="Buscar lead..." oninput="render()" style="width:180px">
   <select id="filterStage" onchange="render()">
     <option value="">Todas as etapas</option>
-    <option value="novo">Novo</option>
-    <option value="contato">Em contato</option>
-    <option value="proposta">Proposta</option>
-    <option value="fechado">Fechado</option>
   </select>
+  <input type="date" id="filterDate" onchange="render()" title="Filtrar por data">
+  <span class="date-clear" onclick="clearDate()">limpar data</span>
   <button class="primary" onclick="openModal(null)">+ Novo lead</button>
   <button onclick="syncMeta()" id="syncBtn">↻ Sincronizar</button>
   <button onclick="openConfig()">⚙ Config</button>
+  <button onclick="openFunnelConfig()">⚡ Funil</button>
 </div>
 
 <div id="alertBox"></div>
@@ -92,6 +94,7 @@ button.primary:hover{background:#0C447C}
 <div class="stats" id="stats"></div>
 <div class="kanban" id="kanban"></div>
 
+<!-- Modal Config API -->
 <div class="modal-bg" id="configBg">
   <div class="modal">
     <h2>⚙ Configuração da API</h2>
@@ -105,6 +108,21 @@ button.primary:hover{background:#0C447C}
   </div>
 </div>
 
+<!-- Modal Funil -->
+<div class="modal-bg" id="funnelBg">
+  <div class="modal">
+    <h2>⚡ Configurar funil</h2>
+    <p style="font-size:12px;color:#666;margin-bottom:12px">Adicione, remova ou renomeie as etapas do funil. A cor aparece no card de cada lead.</p>
+    <div id="stageList"></div>
+    <button class="add-stage-btn" onclick="addStageRow()">+ Adicionar etapa</button>
+    <div class="modal-footer">
+      <button onclick="closeFunnelConfig()">Cancelar</button>
+      <button class="primary" onclick="saveFunnel()">Salvar funil</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Lead -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h2 id="modalTitle">Novo lead</h2>
@@ -112,16 +130,10 @@ button.primary:hover{background:#0C447C}
     <div class="field"><label>E-mail</label><input id="fEmail" type="text" placeholder="email@exemplo.com"></div>
     <div class="field"><label>Telefone</label><input id="fPhone" type="text" placeholder="(85) 9 0000-0000"></div>
     <div class="field"><label>Formulário de origem</label><input id="fForm" type="text" placeholder="Nome do formulário"></div>
-    <div class="field"><label>Etapa</label>
-      <select id="fStage">
-        <option value="novo">Novo</option>
-        <option value="contato">Em contato</option>
-        <option value="proposta">Proposta</option>
-        <option value="fechado">Fechado</option>
-      </select>
-    </div>
+    <div class="field"><label>Etapa</label><select id="fStage"></select></div>
     <div class="field"><label>Observação</label><textarea id="fNote" placeholder="Anotação..."></textarea></div>
     <div class="modal-footer">
+      <button class="danger" id="deleteBtn" onclick="deleteLead()" style="margin-right:auto;display:none">Excluir</button>
       <button onclick="closeModal()">Cancelar</button>
       <button class="primary" onclick="saveLead()">Salvar</button>
     </div>
@@ -129,22 +141,34 @@ button.primary:hover{background:#0C447C}
 </div>
 
 <script>
-const STAGES=['novo','contato','proposta','fechado'];
-const LABELS={novo:'Novo',contato:'Em contato',proposta:'Proposta',fechado:'Fechado'};
-const BADGES={novo:'badge-novo',contato:'badge-contato',proposta:'badge-proposta',fechado:'badge-fechado'};
-const STRIPS={novo:'strip-novo',contato:'strip-contato',proposta:'strip-proposta',fechado:'strip-fechado'};
 const PROXY='/.netlify/functions/leads';
+const DEFAULT_STAGES=[
+  {id:'novo',label:'Novo',color:'#378ADD'},
+  {id:'contato',label:'Em contato',color:'#EF9F27'},
+  {id:'proposta',label:'Proposta',color:'#7F77DD'},
+  {id:'fechado',label:'Fechado',color:'#639922'}
+];
 
 let leads=[];
+let stages=[];
 let editingId=null;
+let autoSyncTimer=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function fmtDate(iso){return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'})}
+function isoDate(iso){return new Date(iso).toISOString().slice(0,10)}
 function getToken(){return localStorage.getItem('meta_crm_token')||''}
 function getFormId(){return localStorage.getItem('meta_crm_formid')||'1705216737598591'}
 
-function load(){try{const s=localStorage.getItem('meta_crm_leads_v2');if(s)leads=JSON.parse(s);}catch(e){leads=[];}}
-function save(){try{localStorage.setItem('meta_crm_leads_v2',JSON.stringify(leads));}catch(e){}}
+function loadStages(){
+  try{const s=localStorage.getItem('meta_crm_stages');if(s)return JSON.parse(s);}catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_STAGES));
+}
+function saveStages(){localStorage.setItem('meta_crm_stages',JSON.stringify(stages));}
+function loadLeads(){try{const s=localStorage.getItem('meta_crm_leads_v2');if(s)leads=JSON.parse(s);}catch(e){leads=[];}}
+function saveLeads(){try{localStorage.setItem('meta_crm_leads_v2',JSON.stringify(leads));}catch(e){}}
+
+function hexToRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
 
 function showAlert(msg,type){
   const box=document.getElementById('alertBox');
@@ -152,41 +176,79 @@ function showAlert(msg,type){
   setTimeout(()=>box.innerHTML='',5000);
 }
 
+function clearDate(){
+  document.getElementById('filterDate').value='';
+  render();
+}
+
+function populateStageSelects(){
+  const fs=document.getElementById('filterStage');
+  const cur=fs.value;
+  fs.innerHTML='<option value="">Todas as etapas</option>';
+  stages.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id;o.textContent=s.label;
+    if(s.id===cur)o.selected=true;
+    fs.appendChild(o);
+  });
+  const ms=document.getElementById('fStage');
+  const mcur=ms.value;
+  ms.innerHTML='';
+  stages.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id;o.textContent=s.label;
+    if(s.id===mcur)o.selected=true;
+    ms.appendChild(o);
+  });
+}
+
 function render(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const fs=document.getElementById('filterStage').value;
+  const fd=document.getElementById('filterDate').value;
+
+  populateStageSelects();
+
   const filtered=leads.filter(l=>{
     if(fs&&l.stage!==fs)return false;
+    if(fd&&isoDate(l.createdAt)!==fd)return false;
     if(q&&!l.name.toLowerCase().includes(q)&&!(l.email||'').toLowerCase().includes(q)&&!(l.phone||'').includes(q))return false;
     return true;
   });
+
   const byStage={};
-  STAGES.forEach(s=>byStage[s]=leads.filter(l=>l.stage===s).length);
-  document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="label">Total</div><div class="value">${leads.length}</div></div>
-    <div class="stat"><div class="label">Novos</div><div class="value">${byStage.novo}</div></div>
-    <div class="stat"><div class="label">Em contato</div><div class="value">${byStage.contato}</div></div>
-    <div class="stat"><div class="label">Propostas</div><div class="value">${byStage.proposta}</div></div>
-    <div class="stat"><div class="label">Fechados</div><div class="value">${byStage.fechado}</div></div>
-  `;
+  stages.forEach(s=>byStage[s.id]=leads.filter(l=>l.stage===s.id).length);
+
+  let statsHtml=`<div class="stat"><div class="label">Total</div><div class="value">${leads.length}</div></div>`;
+  stages.forEach(s=>{
+    statsHtml+=`<div class="stat"><div class="label">${s.label}</div><div class="value">${byStage[s.id]||0}</div></div>`;
+  });
+  document.getElementById('stats').innerHTML=statsHtml;
+
   const kanban=document.getElementById('kanban');
+  kanban.style.gridTemplateColumns=`repeat(${stages.length},1fr)`;
   kanban.innerHTML='';
-  STAGES.forEach(stage=>{
-    const cols=filtered.filter(l=>l.stage===stage);
+
+  stages.forEach(stage=>{
+    const cols=filtered.filter(l=>l.stage===stage.id);
     const col=document.createElement('div');
     col.className='col';
-    col.innerHTML=`<div class="col-header"><div class="col-title"><span class="strip ${STRIPS[stage]}"></span>${LABELS[stage]}</div><span class="col-count">${cols.length}</span></div>`;
+    col.innerHTML=`<div class="col-header"><div class="col-title"><span class="col-strip" style="background:${stage.color}"></span>${stage.label}</div><span class="col-count">${cols.length}</span></div>`;
     if(!cols.length){const e=document.createElement('div');e.className='empty';e.textContent='Nenhum lead';col.appendChild(e);}
     cols.forEach(l=>{
       const card=document.createElement('div');
       card.className='card';
+      card.style.borderLeft=`3px solid ${stage.color}`;
       const src=l.source==='meta'?'<span class="badge-meta">Meta</span>':'';
-      card.innerHTML=`<div class="card-name">${l.name}${src}</div><div class="card-info">${l.email||l.phone||'—'}</div><div class="card-footer"><span class="badge ${BADGES[l.stage]}">${LABELS[l.stage]}</span><span class="card-date">${fmtDate(l.createdAt)}</span></div>`;
+      const badgeBg=hexToRgba(stage.color,0.12);
+      const badgeColor=stage.color;
+      card.innerHTML=`<div class="card-name">${l.name}${src}</div><div class="card-info">${l.email||l.phone||'—'}</div><div class="card-footer"><span class="badge" style="background:${badgeBg};color:${badgeColor}">${stage.label}</span><span class="card-date">${fmtDate(l.createdAt)}</span></div>`;
       card.onclick=()=>openModal(l);
       col.appendChild(card);
     });
     kanban.appendChild(col);
   });
+
   const hasToken=!!getToken();
   document.getElementById('syncDot').className='dot'+(hasToken?'':' warn');
   if(hasToken&&!document.getElementById('syncStatus').textContent.includes('Sincronizando')){
@@ -223,21 +285,29 @@ async function syncMeta(){
       const name=fields['full_name']||fields['nome']||fields['name']||fields['first_name']||'Lead sem nome';
       const email=fields['email']||'';
       const phone=fields['phone_number']||fields['telefone']||fields['celular']||fields['phone']||'';
-      leads.unshift({id:uid(),metaId:item.id,name,email,phone,form:'Form '+formId.slice(-4),stage:'novo',note:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'});
+      const firstStage=stages[0]?stages[0].id:'novo';
+      leads.unshift({id:uid(),metaId:item.id,name,email,phone,form:'Form '+formId.slice(-4),stage:firstStage,note:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'});
       added++;
     });
-    save();render();
+    saveLeads();render();
     const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('syncDot').className='dot';
     document.getElementById('syncStatus').textContent=added>0?`${added} novo(s) lead(s) importado(s)`:'Nenhum lead novo encontrado';
     document.getElementById('syncTime').textContent=`Última sync: ${now}`;
-    showAlert(added>0?`${added} lead(s) importado(s) com sucesso.`:'Nenhum lead novo encontrado.', added>0?'ok':'warn');
+    showAlert(added>0?`${added} lead(s) importado(s) com sucesso.`:'Nenhum lead novo encontrado.',added>0?'ok':'warn');
   }catch(e){
     document.getElementById('syncDot').className='dot off';
     document.getElementById('syncStatus').textContent='Erro: '+e.message;
     showAlert('Erro: '+e.message,'err');
   }
   btn.disabled=false;
+}
+
+function startAutoSync(){
+  if(autoSyncTimer)clearInterval(autoSyncTimer);
+  if(!getToken())return;
+  autoSyncTimer=setInterval(syncMeta,5*60*1000);
+  document.getElementById('syncTime').textContent='Auto-sync ativo (5 min)';
 }
 
 function openConfig(){document.getElementById('cfgToken').value=getToken();document.getElementById('cfgFormId').value=getFormId();document.getElementById('configBg').classList.add('open');}
@@ -247,8 +317,61 @@ function saveConfig(){
   const f=document.getElementById('cfgFormId').value.trim();
   if(t)localStorage.setItem('meta_crm_token',t);
   if(f)localStorage.setItem('meta_crm_formid',f);
-  closeConfig();render();
+  closeConfig();render();startAutoSync();
   showAlert('Configuração salva!','ok');
+}
+
+function openFunnelConfig(){
+  const list=document.getElementById('stageList');
+  list.innerHTML='';
+  stages.forEach((s,i)=>{
+    list.appendChild(makeStageRow(s.id,s.label,s.color,i));
+  });
+  document.getElementById('funnelBg').classList.add('open');
+}
+function closeFunnelConfig(){document.getElementById('funnelBg').classList.remove('open');}
+
+function makeStageRow(id,label,color,idx){
+  const row=document.createElement('div');
+  row.className='stage-row';
+  row.dataset.idx=idx;
+  row.innerHTML=`
+    <input type="color" value="${color}" title="Cor da etapa">
+    <input type="text" value="${label}" placeholder="Nome da etapa">
+    <button class="danger" onclick="removeStageRow(this)">✕</button>
+  `;
+  return row;
+}
+
+function addStageRow(){
+  const list=document.getElementById('stageList');
+  const idx=list.children.length;
+  const colors=['#378ADD','#EF9F27','#7F77DD','#639922','#D85A30','#D4537E'];
+  list.appendChild(makeStageRow('stage_'+uid(),'Nova etapa',colors[idx%colors.length],idx));
+}
+
+function removeStageRow(btn){
+  const rows=document.getElementById('stageList').children;
+  if(rows.length<=1){showAlert('O funil precisa ter ao menos uma etapa.','warn');return;}
+  btn.closest('.stage-row').remove();
+}
+
+function saveFunnel(){
+  const rows=document.getElementById('stageList').querySelectorAll('.stage-row');
+  const newStages=[];
+  rows.forEach((row,i)=>{
+    const label=row.querySelector('input[type=text]').value.trim();
+    const color=row.querySelector('input[type=color]').value;
+    if(!label)return;
+    const existing=stages[i];
+    newStages.push({id:existing?existing.id:'stage_'+uid(),label,color});
+  });
+  if(!newStages.length){showAlert('Adicione ao menos uma etapa.','warn');return;}
+  stages=newStages;
+  saveStages();
+  closeFunnelConfig();
+  render();
+  showAlert('Funil atualizado!','ok');
 }
 
 function openModal(lead){
@@ -258,11 +381,22 @@ function openModal(lead){
   document.getElementById('fEmail').value=lead?lead.email:'';
   document.getElementById('fPhone').value=lead?lead.phone:'';
   document.getElementById('fForm').value=lead?lead.form:'';
-  document.getElementById('fStage').value=lead?lead.stage:'novo';
+  populateStageSelects();
+  document.getElementById('fStage').value=lead?lead.stage:(stages[0]?stages[0].id:'');
   document.getElementById('fNote').value=lead?lead.note:'';
+  document.getElementById('deleteBtn').style.display=lead?'block':'none';
   document.getElementById('modalBg').classList.add('open');
 }
 function closeModal(){document.getElementById('modalBg').classList.remove('open');editingId=null;}
+
+function deleteLead(){
+  if(!editingId)return;
+  if(!confirm('Excluir este lead?'))return;
+  leads=leads.filter(l=>l.id!==editingId);
+  saveLeads();closeModal();render();
+  showAlert('Lead excluído.','warn');
+}
+
 function saveLead(){
   const name=document.getElementById('fName').value.trim();
   if(!name){document.getElementById('fName').focus();return;}
@@ -272,30 +406,16 @@ function saveLead(){
   }else{
     leads.unshift({id:uid(),name,email:document.getElementById('fEmail').value.trim(),phone:document.getElementById('fPhone').value.trim(),form:document.getElementById('fForm').value.trim(),stage:document.getElementById('fStage').value,note:document.getElementById('fNote').value.trim(),createdAt:new Date().toISOString(),source:'manual'});
   }
-  save();closeModal();render();
+  saveLeads();closeModal();render();
 }
+
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('configBg').addEventListener('click',function(e){if(e.target===this)closeConfig();});
-load();render();
+document.getElementById('funnelBg').addEventListener('click',function(e){if(e.target===this)closeFunnelConfig();});
 
-const SYNC_INTERVAL = 5 * 60 * 1000;
-let autoSyncTimer = null;
-
-function startAutoSync(){
-  if(autoSyncTimer) clearInterval(autoSyncTimer);
-  if(!getToken()) return;
-  autoSyncTimer = setInterval(()=>{
-    syncMeta();
-  }, SYNC_INTERVAL);
-  document.getElementById('syncTime').textContent = 'Auto-sync ativo (5 min)';
-}
-
-const _origSaveConfig = saveConfig;
-saveConfig = function(){
-  _origSaveConfig();
-  startAutoSync();
-};
-
+stages=loadStages();
+loadLeads();
+render();
 startAutoSync();
 </script>
 </body>
