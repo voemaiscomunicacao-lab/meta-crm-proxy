@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meta Leads CRM</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;padding:1.5rem}
@@ -31,7 +33,7 @@ button.danger:hover{background:#FCEBEB}
 .col-count{font-size:12px;color:#666;background:#fff;border:1px solid #ddd;border-radius:20px;padding:1px 8px}
 .card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:grab;user-select:none;transition:box-shadow .15s,opacity .15s}
 .card:hover{border-color:#aaa;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.card.dragging{opacity:.4;cursor:grabbing;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.card.dragging{opacity:.4;cursor:grabbing}
 .card-name{font-size:13px;font-weight:500;margin-bottom:4px}
 .card-info{font-size:12px;color:#666;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-extra{font-size:11px;color:#999;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -40,8 +42,8 @@ button.danger:hover{background:#FCEBEB}
 .badge-meta{background:#E6F1FB;color:#0C447C;font-size:10px;padding:1px 6px;border-radius:20px;margin-left:4px}
 .badge-loss{background:#FCEBEB;color:#791F1F;font-size:10px;padding:1px 6px;border-radius:20px;margin-left:4px}
 .card-date{font-size:11px;color:#999}
-.drag-hint{font-size:11px;color:#aaa;text-align:center;padding:4px 0 8px;display:none}
 .empty{text-align:center;padding:20px 10px;color:#aaa;font-size:13px}
+.drag-hint{font-size:11px;color:#aaa;margin-bottom:8px}
 .sync-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-radius:8px;margin-bottom:1rem;font-size:13px;color:#666;border:1px solid #eee}
 .dot{width:8px;height:8px;border-radius:50%;background:#639922;flex-shrink:0}
 .dot.off{background:#E24B4A}.dot.warn{background:#EF9F27}
@@ -71,7 +73,7 @@ button.danger:hover{background:#FCEBEB}
 .loss-option{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid #ddd;cursor:pointer;font-size:13px}
 .loss-option:hover{background:#f5f5f5}
 .loss-option.selected{border-color:#A32D2D;background:#FCEBEB}
-.meta-fields{background:#f9f9f9;border-radius:8px;padding:10px;margin-top:8px;font-size:12px;color:#666}
+.meta-fields{background:#f9f9f9;border-radius:8px;padding:10px;margin-top:8px;font-size:12px}
 .meta-fields .mf-row{display:flex;gap:6px;margin-bottom:4px}
 .meta-fields .mf-label{color:#999;min-width:140px}
 .meta-fields .mf-value{color:#333;font-weight:500}
@@ -105,7 +107,7 @@ button.danger:hover{background:#FCEBEB}
   <span id="syncTime" style="font-size:12px"></span>
 </div>
 
-<div class="drag-hint" id="dragHint">✦ Arraste os cards entre as colunas para mover etapas</div>
+<div class="drag-hint">✦ Arraste os cards entre as colunas para mudar de etapa</div>
 <div class="stats" id="stats"></div>
 <div class="kanban" id="kanban"></div>
 
@@ -171,10 +173,19 @@ button.danger:hover{background:#FCEBEB}
 </div>
 
 <script>
+// Firebase config
+firebase.initializeApp({
+  apiKey: "AIzaSyB2OHAR7CgRnzNBGB7D34rPFqOfaYiy_Nc",
+  authDomain: "crm-hapvida.firebaseapp.com",
+  databaseURL: "https://crm-hapvida-default-rtdb.firebaseio.com",
+  projectId: "crm-hapvida",
+  storageBucket: "crm-hapvida.firebasestorage.app",
+  messagingSenderId: "737597643864",
+  appId: "1:737597643864:web:5d221f4067691948a1fe2d"
+});
+const db = firebase.database();
+
 const PROXY='/.netlify/functions/leads';
-const SUPA_URL='https://efvyoyfoguuiniarypky.supabase.co/rest/v1';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnlveWZvZ3V1aW5pYXJ5cGt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDM2MDYsImV4cCI6MjA5NDgxOTYwNn0.aWPACuGjjSVNoMNVRSoKndXPe3EVROg4D6aZgUWLp7Y';
-const SUPA_HEADERS={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 const LOSS_REASONS=['Preço','Sem resposta','Inválido','Fora da área de comercialização','Sem interesse'];
 const DEFAULT_STAGES=[
   {id:'novo',label:'Novo',color:'#378ADD'},
@@ -185,8 +196,8 @@ const DEFAULT_STAGES=[
 ];
 
 let leads=[];let stages=[];let editingId=null;
-let pendingLossLeadId=null;let pendingLossStage=null;let autoSyncTimer=null;
-let dragLeadId=null;
+let pendingLossLeadId=null;let pendingLossStage=null;
+let autoSyncTimer=null;let dragLeadId=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 function fmtDate(iso){return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'})}
@@ -205,33 +216,35 @@ function showAlert(msg,type){
 }
 function clearDate(){document.getElementById('filterDate').value='';render();}
 
-// SUPABASE
+// FIREBASE DB
 async function dbLoad(){
   try{
-    const res=await fetch(`${SUPA_URL}/leads?order=created_at.desc`,{headers:SUPA_HEADERS});
-    const data=await res.json();
-    leads=data.map(r=>({id:r.id,metaId:r.meta_id,name:r.name,email:r.email,phone:r.phone,plano:r.plano,faixa:r.faixa,contratacao:r.contratacao,form:r.form,stage:r.stage,note:r.note,lossReason:r.loss_reason,source:r.source,createdAt:r.created_at}));
+    const snap=await db.ref('leads').orderByChild('createdAt').once('value');
+    const data=snap.val()||{};
+    leads=Object.values(data).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
     render();
     document.getElementById('syncStatus').textContent='Pronto para sincronizar';
     document.getElementById('syncDot').className='dot';
-    document.getElementById('dragHint').style.display='block';
   }catch(e){showAlert('Erro ao carregar leads: '+e.message,'err');}
 }
-async function dbUpsert(lead){
-  const row={id:lead.id,meta_id:lead.metaId||null,name:lead.name,email:lead.email,phone:lead.phone,plano:lead.plano||null,faixa:lead.faixa||null,contratacao:lead.contratacao||null,form:lead.form,stage:lead.stage,note:lead.note,loss_reason:lead.lossReason||null,source:lead.source,created_at:lead.createdAt};
-  await fetch(`${SUPA_URL}/leads`,{method:'POST',headers:{...SUPA_HEADERS,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(row)});
+
+async function dbSave(lead){
+  await db.ref('leads/'+lead.id).set({
+    id:lead.id,metaId:lead.metaId||null,name:lead.name,email:lead.email||'',
+    phone:lead.phone||'',plano:lead.plano||'',faixa:lead.faixa||'',
+    contratacao:lead.contratacao||'',form:lead.form||'',stage:lead.stage,
+    note:lead.note||'',lossReason:lead.lossReason||'',source:lead.source,
+    createdAt:lead.createdAt
+  });
 }
+
 async function dbUpdate(id,fields){
-  const row={};
-  if(fields.stage!==undefined)row.stage=fields.stage;
-  if(fields.note!==undefined)row.note=fields.note;
-  if(fields.name!==undefined)row.name=fields.name;
-  if(fields.email!==undefined)row.email=fields.email;
-  if(fields.phone!==undefined)row.phone=fields.phone;
-  if(fields.lossReason!==undefined)row.loss_reason=fields.lossReason;
-  await fetch(`${SUPA_URL}/leads?id=eq.${id}`,{method:'PATCH',headers:SUPA_HEADERS,body:JSON.stringify(row)});
+  await db.ref('leads/'+id).update(fields);
 }
-async function dbDelete(id){await fetch(`${SUPA_URL}/leads?id=eq.${id}`,{method:'DELETE',headers:SUPA_HEADERS});}
+
+async function dbDelete(id){
+  await db.ref('leads/'+id).remove();
+}
 
 function parseLeadFields(fieldData){
   const fields={};
@@ -255,35 +268,21 @@ function populateStageSelects(){
 }
 
 // DRAG AND DROP
-function onDragStart(e,leadId){
-  dragLeadId=leadId;
-  e.dataTransfer.effectAllowed='move';
-  setTimeout(()=>e.target.classList.add('dragging'),0);
-}
-function onDragEnd(e){
-  e.target.classList.remove('dragging');
-  document.querySelectorAll('.col').forEach(c=>c.classList.remove('drag-over'));
-  dragLeadId=null;
-}
+function onDragStart(e,leadId){dragLeadId=leadId;e.dataTransfer.effectAllowed='move';setTimeout(()=>e.target.classList.add('dragging'),0);}
+function onDragEnd(e){e.target.classList.remove('dragging');document.querySelectorAll('.col').forEach(c=>c.classList.remove('drag-over'));dragLeadId=null;}
 function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
 function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
 async function onDrop(e,stageId){
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
   if(!dragLeadId)return;
   const idx=leads.findIndex(l=>l.id===dragLeadId);
-  if(idx<0)return;
-  const oldStage=leads[idx].stage;
-  if(oldStage===stageId)return;
+  if(idx<0||leads[idx].stage===stageId)return;
   if(isLossStage(stageId)){
     leads[idx].stage=stageId;
     await dbUpdate(dragLeadId,{stage:stageId});
-    render();
-    openLossModal(dragLeadId,stageId);
-    return;
+    render();openLossModal(dragLeadId,stageId);return;
   }
-  leads[idx].stage=stageId;
-  leads[idx].lossReason='';
+  leads[idx].stage=stageId;leads[idx].lossReason='';
   await dbUpdate(dragLeadId,{stage:stageId,lossReason:''});
   render();
 }
@@ -308,20 +307,15 @@ function render(){
   kanban.innerHTML='';
   stages.forEach(stage=>{
     const col=document.createElement('div');col.className='col';
-    col.setAttribute('data-stage',stage.id);
-    col.ondragover=e=>onDragOver(e);
-    col.ondragleave=e=>onDragLeave(e);
-    col.ondrop=e=>onDrop(e,stage.id);
+    col.ondragover=e=>onDragOver(e);col.ondragleave=e=>onDragLeave(e);col.ondrop=e=>onDrop(e,stage.id);
     col.innerHTML=`<div class="col-header"><div class="col-title"><span class="col-strip" style="background:${stage.color}"></span>${stage.label}</div><span class="col-count">${filtered.filter(l=>l.stage===stage.id).length}</span></div>`;
     const cols=filtered.filter(l=>l.stage===stage.id);
     if(!cols.length){const e=document.createElement('div');e.className='empty';e.textContent='Solte aqui';col.appendChild(e);}
     cols.forEach(l=>{
       const card=document.createElement('div');card.className='card';
       card.draggable=true;
-      card.setAttribute('data-id',l.id);
       card.style.borderLeft=`3px solid ${stage.color}`;
-      card.ondragstart=e=>onDragStart(e,l.id);
-      card.ondragend=e=>onDragEnd(e);
+      card.ondragstart=e=>onDragStart(e,l.id);card.ondragend=e=>onDragEnd(e);
       const src=l.source==='meta'?'<span class="badge-meta">Meta</span>':'';
       const lossTag=l.lossReason?`<span class="badge-loss">${l.lossReason}</span>`:'';
       const info=l.phone||l.email||'—';
@@ -351,7 +345,7 @@ async function syncMeta(){
       if(existingMetaIds.has(item.id))continue;
       const parsed=parseLeadFields(item.field_data);
       const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
-      await dbUpsert(lead);leads.unshift(lead);added++;
+      await dbSave(lead);leads.unshift(lead);added++;
     }
     render();
     const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -385,10 +379,10 @@ async function reimportAll(){
       const existing=existingMap.get(item.id);
       if(existing){
         existing.name=parsed.name||existing.name;existing.email=parsed.email||existing.email;existing.phone=parsed.phone||existing.phone;existing.plano=parsed.plano;existing.faixa=parsed.faixa;existing.contratacao=parsed.contratacao;
-        await dbUpsert(existing);updated++;
+        await dbSave(existing);updated++;
       } else {
         const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
-        await dbUpsert(lead);leads.unshift(lead);added++;
+        await dbSave(lead);leads.unshift(lead);added++;
       }
     }
     render();showAlert(`Reimportação: ${added} novos, ${updated} atualizados.`,'ok');
@@ -497,14 +491,14 @@ async function saveLead(){
     if(idx>-1){
       const oldStage=leads[idx].stage;
       const updates={name,email:document.getElementById('fEmail').value.trim(),phone:document.getElementById('fPhone').value.trim(),note:document.getElementById('fNote').value.trim(),stage:newStage};
-      if(newStage!==oldStage&&isLossStage(newStage)){Object.assign(leads[idx],updates);await dbUpdate(editingId,updates);openLossModal(editingId,newStage);return;}
+      if(newStage!==oldStage&&isLossStage(newStage)){Object.assign(leads[idx],updates);await dbSave(leads[idx]);openLossModal(editingId,newStage);return;}
       if(newStage!==oldStage)updates.lossReason='';
       Object.assign(leads[idx],updates);await dbUpdate(editingId,updates);
     }
   } else {
     const lead={id:uid(),name,email:document.getElementById('fEmail').value.trim(),phone:document.getElementById('fPhone').value.trim(),stage:newStage,note:document.getElementById('fNote').value.trim(),createdAt:new Date().toISOString(),source:'manual',lossReason:'',form:'Manual'};
-    if(isLossStage(newStage)){await dbUpsert(lead);leads.unshift(lead);openLossModal(lead.id,newStage);return;}
-    await dbUpsert(lead);leads.unshift(lead);
+    if(isLossStage(newStage)){await dbSave(lead);leads.unshift(lead);openLossModal(lead.id,newStage);return;}
+    await dbSave(lead);leads.unshift(lead);
   }
   closeModal();render();
 }
