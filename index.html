@@ -277,6 +277,26 @@ function saveLead(){
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('configBg').addEventListener('click',function(e){if(e.target===this)closeConfig();});
 load();render();
+
+const SYNC_INTERVAL = 5 * 60 * 1000;
+let autoSyncTimer = null;
+
+function startAutoSync(){
+  if(autoSyncTimer) clearInterval(autoSyncTimer);
+  if(!getToken()) return;
+  autoSyncTimer = setInterval(()=>{
+    syncMeta();
+  }, SYNC_INTERVAL);
+  document.getElementById('syncTime').textContent = 'Auto-sync ativo (5 min)';
+}
+
+const _origSaveConfig = saveConfig;
+saveConfig = function(){
+  _origSaveConfig();
+  startAutoSync();
+};
+
+startAutoSync();
 </script>
 </body>
 </html>
