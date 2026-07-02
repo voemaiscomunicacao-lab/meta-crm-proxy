@@ -96,6 +96,7 @@ button.danger:hover{background:#FCEBEB}
   <button onclick="reimportAll()" id="reimportBtn">↻ Reimportar</button>
   <button onclick="openConfig()">⚙ Config</button>
   <button onclick="openFunnelConfig()">⚡ Funil</button>
+  <button onclick="clearAllLeads()" id="clearBtn" style="color:#c0392b;border-color:#c0392b">🗑 Zerar leads</button>
 </div>
 
 <div id="alertBox"></div>
@@ -249,6 +250,24 @@ async function dbUpdate(id,fields){
 
 async function dbDelete(id){
   await db.ref('leads/'+id).remove();
+}
+
+async function clearAllLeads(){
+  if(!leads.length){showAlert('Não há leads para excluir.','warn');return;}
+  const total=leads.length;
+  if(!confirm(`Isso vai excluir PERMANENTEMENTE todos os ${total} leads salvos no CRM. Essa ação não pode ser desfeita. Continuar?`))return;
+  if(!confirm('Tem certeza mesmo? Todos os leads (antigos e novos) serão apagados agora.'))return;
+  const btn=document.getElementById('clearBtn');btn.disabled=true;
+  try{
+    await db.ref('leads').remove();
+    leads=[];
+    render();
+    document.getElementById('syncStatus').textContent='Todos os leads foram excluídos';
+    showAlert(`${total} lead(s) excluído(s) com sucesso.`,'ok');
+  }catch(e){
+    showAlert('Erro ao excluir: '+e.message,'err');
+  }
+  btn.disabled=false;
 }
 
 function parseLeadFields(fieldData){
