@@ -196,7 +196,7 @@ const DEFAULT_STAGES=[
   {id:'perdido',label:'Perdido',color:'#E24B4A'}
 ];
 
-let leads=[];let stages=[];let editingId=null;
+let leads=[];let stages=[];let editingId=null;let ignoredMetaIds=new Set();
 let pendingLossLeadId=null;let pendingLossStage=null;
 let autoSyncTimer=null;let dragLeadId=null;
 
@@ -227,6 +227,7 @@ async function dbLoad(){
     const snap=await db.ref('leads').orderByChild('createdAt').once('value');
     const data=snap.val()||{};
     leads=Object.values(data).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    await loadIgnoredMetaIds();
     render();
     document.getElementById('syncStatus').textContent='Pronto para sincronizar';
     document.getElementById('syncDot').className='dot';
@@ -252,6 +253,23 @@ async function dbDelete(id){
   await db.ref('leads/'+id).remove();
 }
 
+async function markMetaIdsIgnored(metaIds){
+  const list=metaIds.filter(Boolean);
+  if(!list.length)return;
+  const updates={};
+  list.forEach(mid=>{updates[mid]=true;});
+  await db.ref('ignoredMetaIds').update(updates);
+  list.forEach(mid=>ignoredMetaIds.add(mid));
+}
+
+async function loadIgnoredMetaIds(){
+  try{
+    const snap=await db.ref('ignoredMetaIds').once('value');
+    const data=snap.val()||{};
+    ignoredMetaIds=new Set(Object.keys(data));
+  }catch(e){ignoredMetaIds=new Set();}
+}
+
 async function clearAllLeads(){
   if(!leads.length){showAlert('Não há leads para excluir.','warn');return;}
   const total=leads.length;
@@ -259,7 +277,9 @@ async function clearAllLeads(){
   if(!confirm('Tem certeza mesmo? Todos os leads (antigos e novos) serão apagados agora.'))return;
   const btn=document.getElementById('clearBtn');btn.disabled=true;
   try{
+    const metaIds=leads.filter(l=>l.metaId).map(l=>l.metaId);
     await db.ref('leads').remove();
+    if(metaIds.length)await markMetaIdsIgnored(metaIds);
     leads=[];
     render();
     document.getElementById('syncStatus').textContent='Todos os leads foram excluídos';
@@ -372,6 +392,7 @@ async function syncMeta(){
     let added=0;
     for(const item of items){
       if(existingMetaIds.has(item.id))continue;
+      if(ignoredMetaIds.has(item.id))continue;
       const parsed=parseLeadFields(item.field_data);
       const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,perfil:parsed.perfil,qtdPessoas:parsed.qtdPessoas,regiao:parsed.regiao,jaTemPlano:parsed.jaTemPlano,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
       await dbSave(lead);leads.unshift(lead);added++;
@@ -410,6 +431,7 @@ async function reimportAll(){
         existing.name=parsed.name||existing.name;existing.email=parsed.email||existing.email;existing.phone=parsed.phone||existing.phone;existing.plano=parsed.plano;existing.faixa=parsed.faixa;existing.contratacao=parsed.contratacao;existing.perfil=parsed.perfil;existing.qtdPessoas=parsed.qtdPessoas;existing.regiao=parsed.regiao;existing.jaTemPlano=parsed.jaTemPlano;
         await dbSave(existing);updated++;
       } else {
+        if(ignoredMetaIds.has(item.id))continue;
         const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,perfil:parsed.perfil,qtdPessoas:parsed.qtdPessoas,regiao:parsed.regiao,jaTemPlano:parsed.jaTemPlano,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
         await dbSave(lead);leads.unshift(lead);added++;
       }
@@ -508,7 +530,9 @@ function openModal(lead){
 function closeModal(){document.getElementById('modalBg').classList.remove('open');editingId=null;}
 async function deleteLead(){
   if(!editingId||!confirm('Excluir este lead?'))return;
+  const lead=leads.find(l=>l.id===editingId);
   await dbDelete(editingId);leads=leads.filter(l=>l.id!==editingId);
+  if(lead&&lead.metaId)await markMetaIdsIgnored([lead.metaId]);
   closeModal();render();showAlert('Lead excluído.','warn');
 }
 async function saveLead(){
