@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -237,7 +236,8 @@ async function dbSave(lead){
   await db.ref('leads/'+lead.id).set({
     id:lead.id,metaId:lead.metaId||null,name:lead.name,email:lead.email||'',
     phone:lead.phone||'',plano:lead.plano||'',faixa:lead.faixa||'',
-    contratacao:lead.contratacao||'',form:lead.form||'',stage:lead.stage,
+    contratacao:lead.contratacao||'',perfil:lead.perfil||'',qtdPessoas:lead.qtdPessoas||'',
+    regiao:lead.regiao||'',jaTemPlano:lead.jaTemPlano||'',form:lead.form||'',stage:lead.stage,
     note:lead.note||'',lossReason:lead.lossReason||'',source:lead.source,
     createdAt:lead.createdAt
   });
@@ -260,7 +260,11 @@ function parseLeadFields(fieldData){
     phone:fields['n\u00famero_do_whatsapp']||fields['telefone']||fields['phone_number']||fields['celular']||fields['phone']||'',
     plano:fields['Operadora']||fields['qual_plano_voc\u00ea_est\u00e1_buscando?']||'',
     faixa:fields['qual_sua_idade?']||fields['qual_a_sua_faixa_et\u00e1ria?']||'',
-    contratacao:fields['voc\u00ea_j\u00e1_possui_plano_de_sa\u00fade?']||fields['quando_pretende_contratar?']||''
+    contratacao:fields['voc\u00ea_j\u00e1_possui_plano_de_sa\u00fade?']||fields['quando_pretende_contratar?']||'',
+    perfil:fields['voc\u00ea_busca_plano_para_voc\u00ea_ou_para_sua_empresa?']||'',
+    qtdPessoas:fields['quantas_pessoas_seriam_inclu\u00eddas_no_plano?']||'',
+    regiao:fields['em_qual_regi\u00e3o_voc\u00ea_mora?']||'',
+    jaTemPlano:fields['voc\u00ea_j\u00e1_tem_algum_plano_de_sa\u00fade_hoje?']||fields['voc\u00ea_j\u00e1_possui_plano_de_sa\u00fade?']||''
   };
 }
 
@@ -324,7 +328,8 @@ function render(){
       const src=l.source==='meta'?'<span class="badge-meta">Meta</span>':'';
       const lossTag=l.lossReason?`<span class="badge-loss">${l.lossReason}</span>`:'';
       const info=l.phone||l.email||'—';
-      const extra=l.plano?`Plano: ${l.plano.replace(/_/g,' ')}`:'';
+      const extraParts=[l.perfil,l.qtdPessoas,l.regiao,l.jaTemPlano].filter(Boolean).map(v=>v.replace(/_/g,' '));
+      const extra=extraParts.length?extraParts.join(' · '):(l.plano?`Plano: ${l.plano.replace(/_/g,' ')}`:'');
       card.innerHTML=`<div class="card-name">${l.name||'Sem nome'}${src}</div><div class="card-info">${info}</div>${extra?`<div class="card-extra">${extra}</div>`:''}<div class="card-footer"><span class="badge" style="background:${hexToRgba(stage.color,0.12)};color:${stage.color}">${stage.label}</span>${lossTag}<span class="card-date">${fmtDate(l.createdAt)}</span></div>`;
       card.onclick=e=>{if(!e.defaultPrevented)openModal(l);};
       col.appendChild(card);
@@ -349,7 +354,7 @@ async function syncMeta(){
     for(const item of items){
       if(existingMetaIds.has(item.id))continue;
       const parsed=parseLeadFields(item.field_data);
-      const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
+      const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,perfil:parsed.perfil,qtdPessoas:parsed.qtdPessoas,regiao:parsed.regiao,jaTemPlano:parsed.jaTemPlano,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
       await dbSave(lead);leads.unshift(lead);added++;
     }
     render();
@@ -383,10 +388,10 @@ async function reimportAll(){
       const parsed=parseLeadFields(item.field_data);
       const existing=existingMap.get(item.id);
       if(existing){
-        existing.name=parsed.name||existing.name;existing.email=parsed.email||existing.email;existing.phone=parsed.phone||existing.phone;existing.plano=parsed.plano;existing.faixa=parsed.faixa;existing.contratacao=parsed.contratacao;
+        existing.name=parsed.name||existing.name;existing.email=parsed.email||existing.email;existing.phone=parsed.phone||existing.phone;existing.plano=parsed.plano;existing.faixa=parsed.faixa;existing.contratacao=parsed.contratacao;existing.perfil=parsed.perfil;existing.qtdPessoas=parsed.qtdPessoas;existing.regiao=parsed.regiao;existing.jaTemPlano=parsed.jaTemPlano;
         await dbSave(existing);updated++;
       } else {
-        const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
+        const lead={id:uid(),metaId:item.id,name:parsed.name||'Lead sem nome',email:parsed.email,phone:parsed.phone,plano:parsed.plano,faixa:parsed.faixa,contratacao:parsed.contratacao,perfil:parsed.perfil,qtdPessoas:parsed.qtdPessoas,regiao:parsed.regiao,jaTemPlano:parsed.jaTemPlano,form:'Form '+formId.slice(-4),stage:stages[0]?stages[0].id:'novo',note:'',lossReason:'',createdAt:item.created_time||new Date().toISOString(),source:'meta'};
         await dbSave(lead);leads.unshift(lead);added++;
       }
     }
@@ -476,8 +481,8 @@ function openModal(lead){
   document.getElementById('fNote').value=lead?lead.note:'';
   document.getElementById('deleteBtn').style.display=lead?'block':'none';
   const mf=document.getElementById('metaFields');
-  if(lead&&lead.source==='meta'&&(lead.plano||lead.faixa||lead.contratacao)){
-    mf.innerHTML=`<hr class="divider"><div class="meta-fields"><div style="font-size:11px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Dados do formulário Meta</div>${lead.plano?`<div class="mf-row"><span class="mf-label">Plano buscado</span><span class="mf-value">${lead.plano.replace(/_/g,' ')}</span></div>`:''}${lead.faixa?`<div class="mf-row"><span class="mf-label">Faixa etária</span><span class="mf-value">${lead.faixa.replace(/_/g,' ')}</span></div>`:''}${lead.contratacao?`<div class="mf-row"><span class="mf-label">Pretende contratar</span><span class="mf-value">${lead.contratacao.replace(/_/g,' ')}</span></div>`:''}</div>`;
+  if(lead&&lead.source==='meta'&&(lead.plano||lead.faixa||lead.contratacao||lead.perfil||lead.qtdPessoas||lead.regiao||lead.jaTemPlano)){
+    mf.innerHTML=`<hr class="divider"><div class="meta-fields"><div style="font-size:11px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Dados do formulário Meta</div>${lead.perfil?`<div class="mf-row"><span class="mf-label">Perfil</span><span class="mf-value">${lead.perfil.replace(/_/g,' ')}</span></div>`:''}${lead.qtdPessoas?`<div class="mf-row"><span class="mf-label">Qtd. pessoas</span><span class="mf-value">${lead.qtdPessoas.replace(/_/g,' ')}</span></div>`:''}${lead.regiao?`<div class="mf-row"><span class="mf-label">Região</span><span class="mf-value">${lead.regiao.replace(/_/g,' ')}</span></div>`:''}${lead.jaTemPlano?`<div class="mf-row"><span class="mf-label">Já tem plano</span><span class="mf-value">${lead.jaTemPlano.replace(/_/g,' ')}</span></div>`:''}${lead.plano?`<div class="mf-row"><span class="mf-label">Plano buscado</span><span class="mf-value">${lead.plano.replace(/_/g,' ')}</span></div>`:''}${lead.faixa?`<div class="mf-row"><span class="mf-label">Faixa etária</span><span class="mf-value">${lead.faixa.replace(/_/g,' ')}</span></div>`:''}${lead.contratacao?`<div class="mf-row"><span class="mf-label">Pretende contratar</span><span class="mf-value">${lead.contratacao.replace(/_/g,' ')}</span></div>`:''}</div>`;
   } else {mf.innerHTML='';}
   document.getElementById('modalBg').classList.add('open');
 }
